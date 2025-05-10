@@ -14,7 +14,6 @@
 #
 # @author Roni Kreinin (rkreinin@clearpathrobotics.com)
 
-
 from ament_index_python.packages import get_package_share_directory
 
 from launch import LaunchDescription
@@ -28,7 +27,7 @@ from nav2_common.launch import RewrittenYaml
 
 
 ARGUMENTS = [
-    DeclareLaunchArgument('use_sim_time', default_value='false',
+    DeclareLaunchArgument('use_sim_time', default_value='true',
                           choices=['true', 'false'],
                           description='Use sim time'),
     DeclareLaunchArgument('sync', default_value='true',
@@ -49,7 +48,7 @@ def generate_launch_description():
         'params',
         default_value=PathJoinSubstitution(
             [pkg_turtlebot4_navigation, 'config', 'slam.yaml']),
-        description='Robot namespace')
+        description='SLAM parameters')
 
     slam_params = RewrittenYaml(
         source_file=LaunchConfiguration('params'),
@@ -65,6 +64,20 @@ def generate_launch_description():
         ('/map', 'map'),
         ('/map_metadata', 'map_metadata'),
     ]
+
+    # RViz with slam.rviz
+    rviz_config_path = PathJoinSubstitution(
+        [pkg_turtlebot4_navigation, 'viz', 'slam.rviz']
+    )
+
+    rviz_node = Node(
+        package='rviz2',
+        executable='rviz2',
+        name='rviz2',
+        output='screen',
+        arguments=['-d', rviz_config_path],
+        parameters=[{'use_sim_time': LaunchConfiguration('use_sim_time')}]
+    )
 
     slam = GroupAction([
         PushRosNamespace(namespace),
@@ -95,4 +108,7 @@ def generate_launch_description():
     ld = LaunchDescription(ARGUMENTS)
     ld.add_action(slam_params_arg)
     ld.add_action(slam)
+    ld.add_action(rviz_node)
+
     return ld
+
